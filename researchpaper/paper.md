@@ -24,10 +24,27 @@
 
  ![alt text](image.png)
 
-- the powers of 1/3 indicate the probablity of the option being chosen when iterating thoruugh the grammer, this branch will get picked.
+ - the powers of 1/3 indicate the probablity of the option being chosen when iterating thoruugh the grammer, this branch will get picked.
 
 
-    
-    
+It uses function interpulators like a neural network. 
+<!-- 
+*Thoughts*     -->
 
-    
+
+Resources used
+
+1) stb_image.h loads the images
+2) stb_image_write.h : it writes the image
+
+
+THINGS TO DO
+
+1) Creating a render engine to create the pixels is one task
+
+2) Creating the function which will  geenrate the random art is seperate task.
+
+
+used the gray scale function to generate the example image from the paper.
+
+used the second example function to generate the color contract image. 
