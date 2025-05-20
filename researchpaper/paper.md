@@ -48,3 +48,21 @@ THINGS TO DO
 used the gray scale function to generate the example image from the paper.
 
 used the second example function to generate the color contract image. 
+
+
+
+right now i have created till ast creation and makes images from that.
+
+- can also prallelize this shit and use multiple threads to run this.
+
+
+------------------------GRAMMAR TIME---------------------------
+
+![alt text](image.png)
+
+the add(C,C) is a rule, where C is a grammar.. and it is calling itself
+
+ht eint grammar willl be index within grammar array, yes i am creating grammar array
+
+
+- There is grammar and or nodes for splitting.

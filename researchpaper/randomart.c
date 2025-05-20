@@ -22,10 +22,21 @@ typedef enum
 {
     NT_X,
     NT_Y,
+
+    NT_RULE,
+    NT_RULE_OR,
+
     NT_NUMBER,
     NT_MULTI,
-    NT_TRIPLE,
     NT_ADD,
+    NT_MOD,
+
+    NT_BOOLEAN,
+    NT_GREATER,
+
+    NT_TRIPLE, 
+
+    NT_IF,
 }Node_Types;
 
 typedef struct Node_As Node_As;
@@ -46,11 +57,20 @@ typedef struct {
     Node *third;
 }Node_tripple;
 
-struct Node_As
+typedef struct {
+    Node *condition;
+    Node *then;
+    Node *elsse;
+}Node_If;
+
+typedef struct Node_As 
 {
-float number;
-Node_binop binop;
-Node_tripple tri;//sbin.usr-is-merged/ binary operators
+    float number;
+    bool boolean;
+    Node_binop binop;
+    Node_tripple tri;
+    Node_If iff;
+    int rule;
 };
 
 
@@ -83,6 +103,16 @@ Node *node_number_loc(const char *file,int line,float number)
 
 }
 #define node_number(number) node_number_loc(__FILE__,__LINE__, number)
+
+
+Node *node_boolean_loc(const char *file,int line,bool boolean)
+{
+    Node *node = node_loc(file, line, NT_BOOLEAN);
+    node-> as->boolean = boolean;
+    return node;
+
+}
+#define node_boolean(boolean) node_boolean_loc(__FILE__,__LINE__, boolean)
 
 #define node_X() node_loc(__FILE__,__LINE__, NT_X)
 #define node_Y() node_loc(__FILE__,__LINE__, NT_Y)
@@ -141,6 +171,37 @@ Node *node_tripple_loc(const char *file,int line,Node *a,Node *b, Node *c)
 
 #define node_tripple(a,b,c) node_tripple_loc(__FILE__, __LINE__, a,b,c)
 
+Node *node_mod_loc(const char *file, int line, Node *lhs, Node *rhs)
+{
+    Node *node = node_loc(file, line, NT_MOD);
+    node->as->binop.lhs = lhs;
+    node->as->binop.rhs = rhs;
+    return node;
+}
+
+#define node_mod(lhs, rhs) node_mod_loc(__FILE__, __LINE__, lhs, rhs)
+
+Node *noded_greater_loc(const char *file, int line, Node *lhs, Node *rhs)
+{
+    Node *node = node_loc(file, line, NT_GREATER);
+    node->as->binop.lhs = lhs;
+    node->as->binop.rhs = rhs;
+    return node;
+}
+
+#define noded_greater(lhs, rhs) noded_greater_loc(__FILE__, __LINE__, lhs, rhs)
+
+Node *node_if_loc(const char *file, int line, Node *condition, Node *then, Node *elsse)
+{
+    Node *node = node_loc(file, line, NT_IF);
+    node->as->iff.condition = condition;
+    node->as->iff.then = then;
+    node->as->iff.elsse = elsse;
+    return node;
+}
+
+#define node_if(condition, then, elsse) node_if_loc(__FILE__, __LINE__, condition, then, elsse)
+
 void node_print(Node *node)
 {
     switch(node->kind)
@@ -156,6 +217,13 @@ void node_print(Node *node)
         break;
     case NT_MULTI:
         printf("multi(");
+        node_print(node->as->binop.lhs);
+        printf(",");
+        node_print(node->as->binop.rhs);
+        printf(")");
+        break;
+    case NT_MOD:
+        printf("mod(");
         node_print(node->as->binop.lhs);
         printf(",");
         node_print(node->as->binop.rhs);
@@ -177,6 +245,27 @@ void node_print(Node *node)
         node_print(node->as->binop.rhs);
         printf(")");
         break;
+    case NT_BOOLEAN:
+        printf("%s", node->as->boolean ? "true" : "false");
+        break; 
+    case NT_GREATER:
+        printf("greater(");
+        node_print(node->as->binop.lhs);
+        printf(",");
+        node_print(node->as->binop.rhs);
+        printf(")");
+        break;  
+    case NT_IF:
+        printf("if");
+        node_print(node->as->iff.condition);
+        printf(" then ");
+        node_print(node->as->iff.then);
+        printf(" else ");
+        node_print(node->as->iff.elsse);
+        break;  
+    case NT_RULE:
+        printf("grammar rule (%d)", node->as->rule);
+        break;  
     default: UNREACHABLE("node print");
 
 }
@@ -229,13 +318,22 @@ ColorV cool(float x, float y)
 }
 Node *eval(Node *expr, float x, float y)
 {
+    if (!expr) {
+        return NULL;
+    }
+    
     switch(expr->kind)
     {
         case NT_X: return node_number(x);
             break;
         case NT_Y: return node_number(y);
             break;
+        case NT_BOOLEAN:
         case NT_NUMBER: return expr;
+            break;
+        case NT_RULE:
+            printf("%s: %d : ERROR : cannot evalute grammar rule %d \n", expr->file, expr->line, expr->as->rule);
+            return NULL;
             break;
         case NT_ADD:
         {       Node *lhs = eval(expr->as->binop.lhs,x,y);
@@ -275,7 +373,28 @@ Node *eval(Node *expr, float x, float y)
             }
             return node_number_loc(expr->file,expr->line, lhs->as->number * rhs->as->number);
         }
-            case NT_TRIPLE:
+
+        case NT_MOD:
+
+        {   Node *lhs = eval(expr->as->binop.lhs,x,y);
+            if(!lhs) return NULL;
+
+             if(lhs->kind != NT_NUMBER)
+            {
+                printf("%s:%d: ERROR: expected number", expr->as->binop.lhs->file,expr->as->binop.lhs->line);
+                return NULL;
+            }
+            Node *rhs = eval(expr->as->binop.rhs, x,y);
+            if(!rhs) return NULL;
+            if(rhs->kind != NT_NUMBER)
+            {
+                printf("%s:%d: ERROR: expected number", expr->as->binop.rhs->file,expr->as->binop.rhs->line);
+                return NULL;
+            }
+            return node_number_loc(expr->file,expr->line, fmodf(lhs->as->number,rhs->as->number));
+        }
+
+        case NT_TRIPLE:
     {       Node *first = eval(expr->as->tri.first, x , y);
         if(!first) return NULL;
             Node *second = eval(expr->as->tri.second, x , y);
@@ -284,6 +403,43 @@ Node *eval(Node *expr, float x, float y)
             if(!third) return NULL;
 
             return node_tripple_loc(expr->file,expr->line, first,second,third);
+    }
+        case NT_GREATER:
+
+    {   Node *lhs = eval(expr->as->binop.lhs,x,y);
+        if(!lhs) return NULL;
+
+         if(lhs->kind != NT_NUMBER)
+        {
+            printf("%s:%d: ERROR: expected number", expr->as->binop.lhs->file,expr->as->binop.lhs->line);
+            return NULL;
+        }
+        Node *rhs = eval(expr->as->binop.rhs, x,y);
+        if(!rhs) return NULL;
+        if(rhs->kind != NT_NUMBER)
+        {
+            printf("%s:%d: ERROR: expected number", expr->as->binop.rhs->file,expr->as->binop.rhs->line);
+            return NULL;
+        }
+        return node_boolean_loc(expr->file, expr->line, lhs->as->number > rhs->as->number);
+    }
+
+    case NT_IF:
+    {
+        Node *condition = eval(expr->as->iff.condition, x, y);
+        if(!condition) {
+            return NULL;
+        }
+        if(condition->kind != NT_BOOLEAN) {
+            return NULL;
+        }
+        
+        if (condition->as->boolean) {
+            return eval(expr->as->iff.then, x, y);
+        } else {
+            return eval(expr->as->iff.elsse, x, y);
+        }
+        break;       
     }
 
     default: NOB_UNREACHABLE("eval");
@@ -321,7 +477,7 @@ bool eval_func(Node *body, float x, float y, ColorV *c)
     return true;
 }
 
-bool render_thou_pixel(Node *f)  // Changed to accept Node* instead of function pointer
+bool render_thou_pixel(Node *f)  //colorV not working, changed to f
 {
     for(size_t y = 0; y < HEIGHT; y++) {
         float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1]
@@ -347,14 +503,27 @@ bool render_thou_pixel(Node *f)  // Changed to accept Node* instead of function 
 }
 
 
+typedef struct 
+{
+    Node **items;
+    size_t count;
+    size_t capacity;
+}Grammar;
+
 int main()
 {
+    Grammar grammar = {0};
+    int c = grammar.count;
     
 
- //render_thou_pixel(gray_);
-//  render_thou_pixel(cool);
-   bool ok =  render_thou_pixel(
-        node_tripple(node_X(),node_Y(),node_number(0.5)));
+    bool ok = render_thou_pixel(
+        node_if(
+            noded_greater(node_multi(node_X(),node_Y()), node_number(0)), 
+            node_tripple(node_X(),node_Y(), node_number(1)),
+            node_tripple(node_mod(node_X(),node_Y()),node_mod(node_X(),node_Y()),node_mod(node_X(),node_Y()))
+        )
+    );
+    
 
     if(!ok) return 1;
     const char *output = "output.png";
