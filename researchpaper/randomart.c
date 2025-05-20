@@ -33,7 +33,8 @@ typedef struct Node_As Node_As;
 typedef struct Node Node;
 
 
-typedef struct{
+typedef  struct
+{
     Node *lhs;
     Node *rhs;
 }Node_binop;
@@ -238,12 +239,16 @@ Node *eval(Node *expr, float x, float y)
             break;
         case NT_ADD:
         {       Node *lhs = eval(expr->as->binop.lhs,x,y);
+                if(!lhs) return NULL;
+
             if(lhs->kind != NT_NUMBER)
             {
                 printf("%s:%d: ERROR: expected number", expr->as->binop.lhs->file,expr->as->binop.lhs->line);
                 return NULL;
             }
             Node *rhs = eval(expr->as->binop.rhs, x,y);
+            if(!rhs) return NULL;
+
             if(rhs->kind != NT_NUMBER)
             {
                 printf("%s:%d: ERROR: expected number", expr->as->binop.rhs->file,expr->as->binop.rhs->line);
@@ -254,12 +259,15 @@ Node *eval(Node *expr, float x, float y)
         case NT_MULTI:
 
         {   Node *lhs = eval(expr->as->binop.lhs,x,y);
+            if(!lhs) return NULL;
+
              if(lhs->kind != NT_NUMBER)
             {
                 printf("%s:%d: ERROR: expected number", expr->as->binop.lhs->file,expr->as->binop.lhs->line);
                 return NULL;
             }
             Node *rhs = eval(expr->as->binop.rhs, x,y);
+            if(!rhs) return NULL;
             if(rhs->kind != NT_NUMBER)
             {
                 printf("%s:%d: ERROR: expected number", expr->as->binop.rhs->file,expr->as->binop.rhs->line);
@@ -269,8 +277,11 @@ Node *eval(Node *expr, float x, float y)
         }
             case NT_TRIPLE:
     {       Node *first = eval(expr->as->tri.first, x , y);
+        if(!first) return NULL;
             Node *second = eval(expr->as->tri.second, x , y);
+            if(!second) return NULL;
             Node *third = eval(expr->as->tri.third, x , y);
+            if(!third) return NULL;
 
             return node_tripple_loc(expr->file,expr->line, first,second,third);
     }
@@ -279,71 +290,75 @@ Node *eval(Node *expr, float x, float y)
     }
 }
 
-bool eval_func(Node *body, float  x, float y, ColorV *c)
+bool eval_func(Node *body, float x, float y, ColorV *c)
 {
-    Node *result = eval(body,x,y);
+    Node *result = eval(body, x, y);
     if(result == NULL) return false;
     if(result->kind != NT_TRIPLE)
     {
-        printf("%s:%d: Function must return triple", result->file,result->line);
+        printf("%s:%d: Function must return triple\n", result->file, result->line);
         return false;
     }
-    c->r =  result->as->tri.first->as->number;
-    c->g =  result->as->tri.second->as->number;
-    c->b =  result->as->tri.third->as->number;
-
-
-
+    if(result->as->tri.first->kind != NT_NUMBER)
+    {
+        printf("%s:%d: First element must be a number\n", result->file, result->line);
+        return false;
+    }
+    if(result->as->tri.second->kind != NT_NUMBER)
+    {
+        printf("%s:%d: Second element must be a number\n", result->file, result->line);
+        return false;
+    }
+    if(result->as->tri.third->kind != NT_NUMBER)
+    {
+        printf("%s:%d: Third element must be a number\n", result->file, result->line);
+        return false;
+    }
+    c->r = result->as->tri.first->as->number;
+    c->g = result->as->tri.second->as->number;
+    c->b = result->as->tri.third->as->number;
+    
+    return true;
 }
 
-void render_thou_pixel(ColorV (*f)(float x, float y))// accepting pointer to function accepting vec2;
-//void render_thou_pixel(Node *f)
+bool render_thou_pixel(Node *f)  // Changed to accept Node* instead of function pointer
 {
-    for( size_t y = 0; y < HEIGHT; y++) { //  we have to normalize the values from 0 to width and height to range of -1 to 1 as that is what the function asks for
+    for(size_t y = 0; y < HEIGHT; y++) {
+        float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1]
+        for(size_t x = 0; x < WIDTH; x++) {
+            float nx = ((float)x/(WIDTH-1)) * 2.0f - 1.0f;  // Normalize x to [-1, 1]
+            ColorV c;
+            
+            if(!eval_func(f, nx, ny, &c)) {
+                return false;
+            }
+              // ColorV c = eval(f,nx,ny);
 
-        float ny = ((float)y/(HEIGHT -1)) * 2.0f - 1 ; // ny =normalized y, maps y to 0 to 1;
-        for(size_t x = 0; x < WIDTH; x++)  
-        {
-            float nx = ((float)x/(WIDTH - 1))* 2.0f - 1;
-            ColorV c = f(nx,ny);
-
-            // ColorV c = eval(f,nx,ny);
-
-            size_t index = y*WIDTH + x;
-
-            float rf = (c.r + 1.0f) / 2.0f * 255.0f;
-if (rf < 0) rf = 0;
-if (rf > 255) rf = 255;
-pixels[index].r = (uint8_t)rf;
-
-            pixels[index].g = (c.g + 1) /2.0f * 255.0f;
-            pixels[index].b = (c.b + 1) /2.0f * 255.0f;
+            size_t index = y * WIDTH + x;
+            
+            // Clamp and convert to 0-255 range
+            pixels[index].r = (uint8_t)((c.r + 1.0f) * 0.5f * 255.0f);
+            pixels[index].g = (uint8_t)((c.g + 1.0f) * 0.5f * 255.0f);
+            pixels[index].b = (uint8_t)((c.b + 1.0f) * 0.5f * 255.0f);
             pixels[index].a = 255;
-
         }
-
-
+    }
+    return true;
 }
-}
+
 
 int main()
 {
-    Node *node = node_tripple(
-
-        node_add(node_X(), node_Y()),
-        node_Y(),
-        node_number(0.5));
-
-    node_print(node);
-    printf("\n");
-    node_print(eval(node,0,0));
-    printf("\n");
-    exit(69);
+    
 
  //render_thou_pixel(gray_);
- render_thou_pixel(cool);
- const char *output = "output.png";
- if(!stbi_write_png(output, WIDTH,HEIGHT , 4 , pixels, WIDTH*sizeof(RGBA32)) )
+//  render_thou_pixel(cool);
+   bool ok =  render_thou_pixel(
+        node_tripple(node_X(),node_Y(),node_number(0.5)));
+
+    if(!ok) return 1;
+    const char *output = "output.png";
+    if(!stbi_write_png(output, WIDTH,HEIGHT , 4 , pixels, WIDTH*sizeof(RGBA32)) )
  {
     nob_log(NOB_ERROR, "Could  not save image %s",output);
     return 1;
