@@ -471,29 +471,29 @@ Node *gen_node(Grammar grammar, Arena *arena, Node *node, int depth)
     case NT_MULTI:
     case NT_MOD:
     case NT_GREATER: {
-        Node *lhs = gen_node(grammar, arena, node->as.binop.lhs, depth );
+        Node *lhs = gen_node(grammar, arena, node->as.binop.lhs, depth -1  );
         if (!lhs) return NULL;
-        Node *rhs = gen_node(grammar, arena, node->as.binop.rhs, depth );
+        Node *rhs = gen_node(grammar, arena, node->as.binop.rhs, depth  - 1);
         if (!rhs) return NULL;
         return node_binop_loc(node->file, node->line, arena, node->kind, lhs, rhs);
     }
 
     case NT_TRIPLE: {
-        Node *first  = gen_node(grammar, arena, node->as.tri.first, depth );
+        Node *first  = gen_node(grammar, arena, node->as.tri.first, depth -1 );
         if (!first) return NULL;
-        Node *second = gen_node(grammar, arena, node->as.tri.second, depth );
+        Node *second = gen_node(grammar, arena, node->as.tri.second, depth- 1 );
         if (!second) return NULL;
-        Node *third  = gen_node(grammar, arena, node->as.tri.third, depth );
+        Node *third  = gen_node(grammar, arena, node->as.tri.third, depth  - 1);
         if (!third) return NULL;
         return node_tripple_loc(node->file, node->line, arena, first, second, third );
     }
     
     case NT_IF: {
-        Node *cond = gen_node(grammar, arena, node->as.iff.condition, depth );
+        Node *cond = gen_node(grammar, arena, node->as.iff.condition, depth - 1 );
         if (!cond) return NULL;
-        Node *then = gen_node(grammar, arena, node->as.iff.then, depth );
+        Node *then = gen_node(grammar, arena, node->as.iff.then, depth - 1);
         if (!then) return NULL;
-        Node *elsse = gen_node(grammar, arena, node->as.iff.elsse, depth );
+        Node *elsse = gen_node(grammar, arena, node->as.iff.elsse, depth - 1);
         if (!elsse) return NULL;
         return node_if_loc(node->file, node->line, arena, cond, then, elsse);
     }
