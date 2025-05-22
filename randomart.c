@@ -87,7 +87,6 @@ Node *node_loc(const char *file, int line, Arena *arena, Node_Types kind)
 Node *node_unary_loc(const char *file, int line, Arena *arena, Node_Types kind, Node *unary)
 {
     Node *node = node_loc(file, line, arena, kind);
-    // Add unary field if needed
     return node;
 }
 
@@ -233,9 +232,8 @@ typedef struct{
     uint8_t g;
     uint8_t b;
     uint8_t a;
-}RGBA32; // this is a struct which creates a 32bit struct idenitcal to 32bit rgba.
-
-static RGBA32 pixels[WIDTH * HEIGHT]; // this is the pixel array
+}RGBA32; creates some 32 bit standard image 
+static RGBA32 pixels[WIDTH * HEIGHT]; // this is scrreen
 
 typedef struct {
     float x,y;
@@ -412,9 +410,9 @@ bool render_thou_pixel(Node *f)
 {
     Arena arena = {0};
     for (size_t y = 0; y < HEIGHT; y++) {
-        float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1]
+        float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1] or functions break and working with non standard values if fucking frustrating
         for (size_t x = 0; x < WIDTH; x++) {
-            float nx = ((float)x/(WIDTH-1)) * 2.0f - 1.0f;  // Normalize x to [-1, 1]
+            float nx = ((float)x/(WIDTH-1)) * 2.0f - 1.0f;  // same same as above . NOTE TO SELF ALWAYS TRY TO NORMALIZE AND WORK
             ColorV c;
             
             if (!eval_func(f, &arena, nx, ny, &c)) {
@@ -425,7 +423,7 @@ bool render_thou_pixel(Node *f)
 
             size_t index = y * WIDTH + x;
             
-            // Clamp and convert to 0-255 range
+            // convert to  0-255 range to generate imagea
             pixels[index].r = (uint8_t)((c.r + 1.0f) * 0.5f * 255.0f);
             pixels[index].g = (uint8_t)((c.g + 1.0f) * 0.5f * 255.0f);
             pixels[index].b = (uint8_t)((c.b + 1.0f) * 0.5f * 255.0f);
@@ -524,7 +522,7 @@ Node *gen_rule(Grammar grammar, Arena *arena, size_t rule, int depth)
 
     Node *node = NULL;
     for (size_t attempts = 0; node == NULL && attempts < GEN_RULE_MAX_ATTEMPTS; ++attempts) {
-        // [0......][...][...1]
+        // [0......][...][...1] // this is array created 
         float p = rand_float();
         float t = 0.0f;
         for (size_t i = 0; i < branches->count; ++i) {
@@ -590,7 +588,7 @@ int main()
 
     Node *f = gen_rule(grammar, &static_arena, e, 30);
     if (!f) {
-        fprintf(stderr, "ERROR: the crappy generation process could not terminate\n");
+        fprintf(stderr, "ERROR: the shitty generation process failedfd  could not terminate\n");
         return 1;
     }
     node_print_ln(f);
