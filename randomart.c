@@ -232,7 +232,7 @@ typedef struct{
     uint8_t g;
     uint8_t b;
     uint8_t a;
-}RGBA32; creates some 32 bit standard image 
+}RGBA32;// creates some 32 bit standard image 
 static RGBA32 pixels[WIDTH * HEIGHT]; // this is scrreen
 
 typedef struct {
@@ -410,7 +410,7 @@ bool render_thou_pixel(Node *f)
 {
     Arena arena = {0};
     for (size_t y = 0; y < HEIGHT; y++) {
-        float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1] or functions break and working with non standard values if fucking frustrating
+        float ny = ((float)y/(HEIGHT-1)) * 2.0f - 1.0f;  // Normalize y to [-1, 1] or functions break and working with non standard values becomes annoying
         for (size_t x = 0; x < WIDTH; x++) {
             float nx = ((float)x/(WIDTH-1)) * 2.0f - 1.0f;  // same same as above . NOTE TO SELF ALWAYS TRY TO NORMALIZE AND WORK
             ColorV c;
@@ -538,7 +538,7 @@ Node *gen_rule(Grammar grammar, Arena *arena, size_t rule, int depth)
 
 #define node_print_ln(node) (node_print(node), printf("\n"))
 
-size_t arch[] = {2, 28, 28, 9, 3};
+// size_t arch[] = {2, 28, 28, 9, 3};
 
 int main()
 {
